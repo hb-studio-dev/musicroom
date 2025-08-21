@@ -13,15 +13,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-14, windows-2022, ubuntu-22.04]
 
     env:
       CI: true
-      # Disable code signing for CI artifacts
+      APPIMAGE_EXTRACT_AND_RUN: "1"
       CSC_IDENTITY_AUTO: false
-      # Avoid publishing from electron-builder during CI
       ELECTRON_BUILD_PUBLISH: never
-      # Speed up: reuse caches in repo dir (cross-platform)
       ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
       ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
 
@@ -34,6 +32,11 @@ jobs:
         with:
           node-version: 18
           cache: npm
+
+      - name: Print versions
+        run: |
+          node -v
+          npm -v
 
       - name: Cache Electron caches
         uses: actions/cache@v4
@@ -51,27 +54,56 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install
-
-      # Linux sometimes needs extra packages for certain targets; keep commented as a hint
-      # - name: Install Linux packaging deps
-      #   if: matrix.os == 'ubuntu-latest'
-      #   run: sudo apt-get update && sudo apt-get install -y rpm
-
-      - name: Build renderer + package app
+          npm ci || npm install --no-audit --no-fund || npm install --legacy-peer-deps
+      
+      - name: Install Linux deps (FUSE/AppImage)
+        if: matrix.os == 'ubuntu-22.04'
         run: |
-          if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            npm run dist:mac
-          elif [ "${{ matrix.os }}" = "windows-latest" ]; then
-            npm run dist:win
-          else
-            npm run dist:linux
-          fi
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 || sudo apt-get install -y libfuse2t64 || true
+          sudo apt-get install -y rpm || true
+
+      - name: Build renderer (Vite)
+        run: |
+          npm run build:renderer 2>&1 | tee vite-build.log
         shell: bash
 
-      # Upload OS-specific artifacts
+      - name: Package macOS
+        if: matrix.os == 'macos-14'
+        env:
+          DEBUG: electron-builder
+        run: |
+          npm run dist:mac 2>&1 | tee electron-builder.log
+        shell: bash
+
+      - name: Package Windows
+        if: matrix.os == 'windows-2022'
+        env:
+          DEBUG: electron-builder
+        run: |
+          npm run dist:win 2>&1 | Tee-Object -FilePath electron-builder.log
+        shell: pwsh
+
+      - name: Package Linux
+        if: matrix.os == 'ubuntu-22.04'
+        env:
+          DEBUG: electron-builder
+        run: |
+          npm run dist:linux 2>&1 | tee electron-builder.log
+        shell: bash
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ matrix.os }}
+          path: |
+            vite-build.log
+            electron-builder.log
+          if-no-files-found: warn
+
       - name: Upload macOS artifacts
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-14'
         uses: actions/upload-artifact@v4
         with:
           name: MusicRoom-mac
@@ -81,7 +113,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload Windows artifacts
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2022'
         uses: actions/upload-artifact@v4
         with:
           name: MusicRoom-windows
@@ -91,7 +123,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload Linux artifacts
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-22.04'
         uses: actions/upload-artifact@v4
         with:
           name: MusicRoom-linux
