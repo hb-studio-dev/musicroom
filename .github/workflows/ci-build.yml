@@ -1,0 +1,101 @@
+name: Build (macOS / Windows / Linux)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    env:
+      CI: true
+      # Disable code signing for CI artifacts
+      CSC_IDENTITY_AUTO: false
+      # Avoid publishing from electron-builder during CI
+      ELECTRON_BUILD_PUBLISH: never
+      # Speed up: reuse caches in repo dir (cross-platform)
+      ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Cache Electron caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cache/electron
+            .cache/electron-builder
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+          key: electron-${{ runner.os }}-node18-${{ hashFiles('package-lock.json', 'pnpm-lock.yaml', 'yarn.lock') }}
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      # Linux sometimes needs extra packages for certain targets; keep commented as a hint
+      # - name: Install Linux packaging deps
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - name: Build renderer + package app
+        run: |
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            npm run dist:mac
+          elif [ "${{ matrix.os }}" = "windows-latest" ]; then
+            npm run dist:win
+          else
+            npm run dist:linux
+          fi
+        shell: bash
+
+      # Upload OS-specific artifacts
+      - name: Upload macOS artifacts
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MusicRoom-mac
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          if-no-files-found: warn
+
+      - name: Upload Windows artifacts
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MusicRoom-windows
+          path: |
+            dist/*.exe
+            dist/*.zip
+          if-no-files-found: warn
+
+      - name: Upload Linux artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MusicRoom-linux
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+          if-no-files-found: warn

@@ -1,0 +1,64 @@
+{
+  "models": [
+    {
+      "name": "builtin-vocals",
+      "path": "builtin://mdx-lite",
+      "target": "Vocal",
+      "n_fft": 4096,
+      "hop_length": 1024,
+      "window": "hann",
+      "inputLayout": "NCHW",
+      "magOnly": true
+    },
+    {
+      "name": "builtin-bass",
+      "path": "builtin://mdx-lite",
+      "target": "Bass",
+      "n_fft": 4096,
+      "hop_length": 1024,
+      "window": "hann",
+      "inputLayout": "NCHW",
+      "magOnly": true
+    },
+    {
+      "name": "builtin-drums",
+      "path": "builtin://mdx-lite",
+      "target": "Drums",
+      "n_fft": 4096,
+      "hop_length": 1024,
+      "window": "hann",
+      "inputLayout": "NCHW",
+      "magOnly": true
+    },
+    {
+      "name": "builtin-piano",
+      "path": "builtin://mdx-lite",
+      "target": "Piano",
+      "n_fft": 4096,
+      "hop_length": 1024,
+      "window": "hann",
+      "inputLayout": "NCHW",
+      "magOnly": true
+    },
+    {
+      "name": "builtin-guitar",
+      "path": "builtin://mdx-lite",
+      "target": "Guitar",
+      "n_fft": 4096,
+      "hop_length": 1024,
+      "window": "hann",
+      "inputLayout": "NCHW",
+      "magOnly": true
+    },
+    {
+      "name": "builtin-others",
+      "path": "builtin://mdx-lite",
+      "target": "Others",
+      "n_fft": 4096,
+      "hop_length": 1024,
+      "window": "hann",
+      "inputLayout": "NCHW",
+      "magOnly": true
+    }
+  ]
+}

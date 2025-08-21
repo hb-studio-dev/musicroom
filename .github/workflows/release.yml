@@ -1,0 +1,58 @@
+name: Release (tag)
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    env:
+      CI: true
+      CSC_IDENTITY_AUTO: false
+      ELECTRON_BUILD_PUBLISH: never
+      ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .cache/electron
+            .cache/electron-builder
+          key: electron-${{ runner.os }}-node18-${{ hashFiles('package-lock.json', 'pnpm-lock.yaml', 'yarn.lock') }}
+      - run: npm install
+      - name: Build
+        run: |
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            npm run dist:mac
+          elif [ "${{ matrix.os }}" = "windows-latest" ]; then
+            npm run dist:win
+          else
+            npm run dist:linux
+          fi
+        shell: bash
+
+      - name: Create GitHub Release (draft)
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

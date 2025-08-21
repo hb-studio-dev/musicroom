@@ -1,0 +1,81 @@
+{
+  "name": "musicroom-standalone",
+  "version": "1.3.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Standalone Electron app wrapper for the provided Music Room UI, with separated UI and audio-processing layers.",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev:renderer": "cd renderer && vite",
+    "dev:electron": "wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "build:renderer": "cd renderer && vite build",
+    "build": "npm run build:renderer && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@mui/base": "5.0.0-beta.70",
+    "@mui/material": "^5.15.15",
+    "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.3",
+    "onnxruntime-web": "^1.19.2",
+    "jszip": "^3.10.1",
+    "@ffmpeg/ffmpeg": "^0.12.5",
+    "@zip.js/zip.js": "^2.7.34"
+  },
+  "devDependencies": {
+    "electron": "^32.2.0",
+    "electron-builder": "^24.13.3",
+    "concurrently": "^9.0.1",
+    "wait-on": "^7.2.0",
+    "cross-env": "^7.0.3",
+    "vite": "^5.2.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "typescript": "^5.4.0",
+    "tailwindcss": "^3.4.4",
+    "postcss": "^8.4.35",
+    "autoprefixer": "^10.4.18"
+  },
+  "build": {
+    "appId": "net.hb_studio.musicroom",
+    "productName": "MusicRoom",
+    "files": [
+      "electron/**",
+      "renderer/dist/**",
+      "LICENSE*",
+      "README*"
+    ],
+    "extraResources": [
+      {
+        "from": "renderer/public",
+        "to": "public"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.music",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "AudioVideo"
+    }
+  }
+}
